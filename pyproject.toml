@@ -1,0 +1,8 @@
+[project]
+name = "basketball-bot"
+version = "0.1.0"
+description = "Basketball Bot"
+requires-python = ">=3.14"
+dependencies = [
+    "duckdb>=1.5.6",
+]
