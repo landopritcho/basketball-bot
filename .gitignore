@@ -1,0 +1,10 @@
+.venv
+__pycache__/
+*.pd[cod]
+build/
+dist/
+*.egg-info/
+.env
+.DS_Store
+.AppleDouble
+._*
