@@ -55,7 +55,7 @@ def extract_game(event):
         "source_status_detail": competition["status"]["type"].get("detail"),
     }
 
-def save_schedule(games):
+def save_schedule(games, teams):
     if not games:
         raise ValueError("Refusing to replace the schedule with no games")
 
@@ -102,12 +102,61 @@ def save_schedule(games):
             )
         """, games)
 
+        connection.execute("""
+            CREATE OR REPLACE TABLE teams (
+                team_id VARCHAR PRIMARY KEY,
+                name VARCHAR,
+                search_labels VARCHAR[]
+            )
+        """)
+
+        connection.executemany("""
+            INSERT INTO teams VALUES (
+                $team_id,
+                $name,
+                $search_labels
+            )
+        """, teams)
+
         connection.execute("COMMIT")
+
         connection.execute("""
             COPY games TO 'data/schedule.parquet' (FORMAT PARQUET)
         """)
 
-    print(f"Saved {len(games)} games to DuckDB and Parquet")
+        connection.execute("""
+            COPY teams TO 'data/teams.parquet' (FORMAT PARQUET)
+        """)
+
+    print(
+        f"Saved {len(games)} games and {len(teams)} teams "
+        "to DuckDB and Parquet"
+    )
+
+def collect_team(team_records, source):
+    record = team_records.setdefault(
+        source["id"],
+        {
+            "team_id": source["id"],
+            "name": source["displayName"],
+            "search_labels": [],
+        },
+    )
+
+    labels = set(record["search_labels"])
+    for field in (
+        "displayName",
+        "location",
+        "name",
+        "abbreviation",
+        "nickname",
+        "shortDisplayName",
+    ):
+        label = source.get(field)
+        if label:
+            labels.add(label)
+
+    record["search_labels"] = sorted(labels)
 
 def main():
     season = 2027
@@ -118,6 +167,10 @@ def main():
     
     if not teams:
         raise ValueError("ESPN returned an empty team directory")
+
+    team_records = {}
+    for entry in teams:
+        collect_team(team_records, entry["team"])
 
     print(f"Season: {season - 1}-{season % 100:02d}")
     print(f"Teams: {len(teams)}")
@@ -144,6 +197,7 @@ def main():
                 f"Unexpected season for {team['displayName']}: {requested}"
             )
 
+
         for event in schedule["events"]:
             game = extract_game(event)
 
@@ -151,6 +205,9 @@ def main():
                 raise ValueError(
                     f"Unexpected season for game {game['game_id']}"
                 )
+
+            for competitor in event["competitions"][0]["competitors"]:
+                collect_team(team_records, competitor["team"])
 
             previous = games_by_id.get(game["game_id"])
             if previous is not None:
@@ -177,7 +234,10 @@ def main():
 
     print(f"Unique games: {len(games)}")
     print(f"Duplicate appearances removed: {duplicate_count}")
-    save_schedule(games)
+    save_schedule(
+        games,
+        sorted(team_records.values(), key=lambda team: team["team_id"]),
+    )
 
     timezone = ZoneInfo("America/Chicago")
 
