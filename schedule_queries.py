@@ -70,7 +70,7 @@ def get_team_schedule(connection, team_id, season):
         "games": games,
     }
 
-def _game_calendar_date(game, zone):
+def get_game_calendar_date(game, zone):
     if game["tipoff_utc"] is not None:
         return game["tipoff_utc"].astimezone(zone).date()
 
@@ -132,7 +132,7 @@ def get_next_game(
         if tipoff is not None and tipoff <= reference_utc:
             continue
 
-        game_day = _game_calendar_date(game, zone)
+        game_day = get_game_calendar_date(game, zone)
 
         if game_day < today:
             continue
@@ -182,7 +182,7 @@ def get_team_schedule_in_range(connection, team_id, season, date_range):
             continue
 
         try:
-            game_day = _game_calendar_date(game, zone)
+            game_day = get_game_calendar_date(game, zone)
         except ValueError:
             uncertain.append(game)
             continue

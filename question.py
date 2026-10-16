@@ -4,12 +4,8 @@ from zoneinfo import ZoneInfo
 import duckdb
 from prompt_toolkit import PromptSession
 
-from schedule_parser import resolve_schedule_question
-from schedule_queries import (
-    get_next_game,
-    get_team_schedule,
-    get_team_schedule_in_range,
-)
+from query_execution import bind_game_query, execute_game_query
+from semantic_parser import SemanticParser
 from team_search import load_team_search
 
 DATABASE_PATH = "data/basketball.duckdb"
@@ -35,56 +31,36 @@ def choose_team(session, candidates):
 
         print(f"Enter a number from 1 to {len(candidates)}")
 
-def execute_request(connection, request, reference_time, zone):
-    if request["intent"] == "next_game":
-        game = get_next_game(
-            connection,
-            request["team_id"],
-            SEASON,
-            reference_time,
-            timezone=zone.key,
-        )
-        return {
-            "team_name": request["team_name"],
-            "season": SEASON,
-            "games": [] if game is None else [game],
-        }
-
-    if request["intent"] != "team_schedule":
-        raise ValueError(f"Unsupported intent: {request['intent']}")
-
-    if request["date_range"] is not None:
-        return get_team_schedule_in_range(
-            connection,
-            request["team_id"],
-            SEASON,
-            request["date_range"],
-        )
-
-    return get_team_schedule(connection, request["team_id"], SEASON)
-
 def format_game(game, zone):
-    if game["tipoff_utc"] is None:
-        when = game["source_status_detail"] or "Date/time TBD"
-    else:
+    if game["tipoff_utc"] is not None:
         when = game["tipoff_utc"].astimezone(zone).strftime(
             "%Y-%m-%d %I:%M:%S %p %Z"
         )
+    elif game["calendar_date"] is not None:
+        when = f"{game['calendar_date'].isoformat()} - Time TBD"
+    else:
+        when = game['source_status_detail'] or "Date/time TBD"
 
-    site = game["site"] or "Location TBD"
+    away = game["away_team_name"]
+    home = game["home_team_name"]
+
+    if game["neutral_site"] is False:
+        matchup = f"{away} @ {home}"
+    elif game["neutral_site"] is True:
+        matchup = f"{away} vs {home} | neutral"
+    else:
+        matchup = f"{away} vs {home} | Home/away designation TBD"
+
     venue = game["venue"] or "Venue TBD"
-
-    return f"{when} | {game['opponent_team_name']} | {site} | {venue}"
+    return f"{when} | {matchup} | {venue}"
 
 def print_answer(answer, zone):
     season = answer["season"]
     games = answer["games"]
-    uncertain = answer.get("uncertain_games", [])
+    uncertain = answer["uncertain_games"]
+    heading = answer["team_name"] or "All teams"
 
-    print(
-        f"\n{answer['team_name']} | "
-        f"Season: {season - 1}-{season % 100:02d}"
-    )
+    print(f"\n{heading} | Season: {season - 1}-{season % 100:02d}")
 
     if games:
         for game in games:
@@ -95,9 +71,10 @@ def print_answer(answer, zone):
         print("No matching games recorded.")
 
     if uncertain:
-        print("\nThese games may match; their date or tipoff is unconfirmed:")
+        print("\nThese games may match; some schedule information is unconfirmed:")
         for game in uncertain:
             print(format_game(game, zone))
+            print(f"  {' '.join(game['uncertain_reasons'])}")
 
     print()
 
@@ -107,7 +84,7 @@ def main():
 
     try:
         with duckdb.connect(DATABASE_PATH, read_only=True) as connection:
-            searcher = load_team_search(DATABASE_PATH)
+            parser = SemanticParser(load_team_search(DATABASE_PATH))
 
             print(
                 f"Basketball schedules: {SEASON-1}-{SEASON % 100:02d}."
@@ -123,37 +100,31 @@ def main():
                     continue
 
                 reference_time = datetime.now(zone)
-                resolved = resolve_schedule_question(
-                    question,
-                    searcher,
-                    reference_time,
-                    timezone=zone.key,
-                    season=SEASON,
-                )
-
-                if resolved["status"] == "choose_team":
-                    team = choose_team(session, resolved["candidates"])
-                    if team is None:
-                        continue
-
-                    request = {
-                        **resolved["request"],
-                        "team_id": team["team_id"],
-                        "team_name": team["name"],
-                    }
-                elif resolved["status"] == "ready":
-                    request = resolved["request"]
-                else:
-                    print(resolved["message"])
-                    continue
 
                 try:
-                    answer = execute_request(
-                        connection,
-                        request,
+                    meanings = parser.parse(question)
+                    if len(meanings) != 1:
+                        raise ValueError(
+                            "The question has multiple interpretations. "
+                            "Please rephrase it more specifically."
+                        )
+
+                    meaning = meanings[0]
+                    candidates = meaning["team_candidates"]
+
+                    if candidates is not None and len(candidates) > 1:
+                        team = choose_team(session, candidates)
+                        if team is None:
+                            continue
+                        meaning = {**meaning, "team_candidates": [team]}
+
+                    query = bind_game_query(
+                        meaning,
+                        SEASON,
                         reference_time,
-                        zone,
+                        timezone=zone.key,
                     )
+                    answer = execute_game_query(connection, query)
                 except (ValueError, OverflowError) as error:
                     print(f"Cannot answer: {error}")
                     continue
