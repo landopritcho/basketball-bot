@@ -27,14 +27,18 @@ func NewClient() ScrapingClient {
 	}
 }
 
-func (s ScrapingClient) Scrape(url string) (*http.Response, error) {
+func (s ScrapingClient) Scrape(url string, useUserAgent *bool) (*http.Response, error) {
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodGet, url, nil,
 	)
 	if err != nil {
 		return &http.Response{}, err
 	}
-	req.Header.Set("User-Agent", s.UserAgent)
+	if useUserAgent != nil && *useUserAgent {
+		req.Header.Set("User-Agent", "BasketballBot/1.0")
+	} else {
+		req.Header.Set("User-Agent", "")
+	}
 
 	resp, err := s.HttpClient.Do(req)
 	if err != nil {
@@ -42,7 +46,7 @@ func (s ScrapingClient) Scrape(url string) (*http.Response, error) {
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return &http.Response{}, fmt.Errorf("unsuccessful http request for %s", url)
+		return nil, fmt.Errorf("unsuccessful http request for %s: %s", url, resp.Status)
 	}
 
 	return resp, nil
