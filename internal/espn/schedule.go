@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/landopritcho/basketball-bot/internal/date"
 	"github.com/landopritcho/basketball-bot/internal/http"
@@ -54,6 +55,10 @@ type Team struct {
 	GameScoreByHalf []ScoreBreakdown `json:"linescores"`
 	Details         TeamDetails      `json:"team"`
 	CuratedRank     CuratedRank      `json:"curatedRank"`
+}
+
+func (t Team) IsHomeTeam() bool {
+	return strings.ToLower(t.HomeAway) == "home"
 }
 
 type ScoreBreakdown struct {
@@ -128,6 +133,8 @@ type ScheduledGame struct {
 	Venue                  string // "Dean E. Smith Center"
 	Title                  string // "Orion180 Tipoff Classic"
 	BroadcastChannel       string // "ACC Network"
+	HomeTeam               Team
+	AwayTeam               Team
 }
 
 func GetUpcomingDaySchedule(client http.ScrapingClient) ([]ScheduledGame, error) {
@@ -144,10 +151,21 @@ func GetUpcomingDaySchedule(client http.ScrapingClient) ([]ScheduledGame, error)
 			return nil, err
 		}
 		gameDetails := game.Details[0]
+
+		var homeTeam, awayTeam Team
+		if gameDetails.Teams[0].IsHomeTeam() {
+			homeTeam = gameDetails.Teams[0]
+			awayTeam = gameDetails.Teams[1]
+		} else {
+			homeTeam = gameDetails.Teams[1]
+			awayTeam = gameDetails.Teams[0]
+		}
+
 		title := ""
 		if len(gameDetails.Note) == 0 {
 			title = ""
 		}
+
 		scheduledGames = append(scheduledGames, ScheduledGame{
 			Id:                     game.Id,
 			Datetime:               convertedDatetime,
@@ -156,6 +174,8 @@ func GetUpcomingDaySchedule(client http.ScrapingClient) ([]ScheduledGame, error)
 			Venue:                  gameDetails.Venue.Name,
 			Title:                  title,
 			BroadcastChannel:       gameDetails.BroadcastChannel,
+			HomeTeam:               homeTeam,
+			AwayTeam:               awayTeam,
 		})
 	}
 	return scheduledGames, nil
