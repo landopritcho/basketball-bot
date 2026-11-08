@@ -1,4 +1,4 @@
-CREATE TABLE upcoming_schedule (
+CREATE TABLE upcoming_games (
     id INTEGER PRIMARY KEY,
     tipoff INTEGER,
     long_description TEXT,
