@@ -4,8 +4,8 @@ CREATE TABLE IF NOT EXISTS teams (
     name TEXT,
     abbreviation TEXT,
     display_name TEXT,
-    short_display_name TEXT,
+    slug TEXT,
     primary_color TEXT,
     alternate_color TEXT,
-    conference_id TEXT
+    rank INTEGER CHECK (rank IS NULL OR rank between 1 and 25)
 );
