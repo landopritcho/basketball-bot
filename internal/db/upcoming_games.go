@@ -20,6 +20,22 @@ type UpcomingGame struct {
 	AwayTeamId             int    // 496
 }
 
+type UpcomingGameDetails struct {
+	Id                     string
+	Tipoff                 int64
+	LongDescription        string
+	AbbreviatedDescription string
+	Venue                  string
+	Title                  string
+	BroadcastChannel       string
+	HomeTeamName           *string
+	HomeTeamAbbreviation   *string
+	HomeTeamRank           *int
+	AwayTeamName           *string
+	AwayTeamAbbreviation   *string
+	AwayTeamRank           *int
+}
+
 func UpdateUpcomingGames(ctx context.Context, db *sql.DB, games []UpcomingGame) (int64, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
@@ -71,17 +87,35 @@ func UpdateUpcomingGames(ctx context.Context, db *sql.DB, games []UpcomingGame) 
 	return int64(len(games)), nil
 }
 
-func GetUpcomingGames(db *sql.DB) ([]UpcomingGame, error) {
-	sql := "SELECT * FROM upcoming_games"
-	rows, err := db.Query(sql)
+func GetUpcomingGames(ctx context.Context, db *sql.DB) ([]UpcomingGameDetails, error) {
+	sql := `
+	SELECT
+		games.id,
+		games.tipoff,
+		games.long_description,
+		games.abbreviated_description,
+		games.venue,
+		games.title,
+		games.broadcast_channel,
+		home.display_name AS home_team_name,
+		home.abbreviation AS home_team_abbreviation,
+		home.rank AS home_team_rank,
+		away.display_name AS away_team_name,
+		away.abbreviation AS away_team_abbreviation,
+		away.rank AS away_team_rank
+	FROM upcoming_games AS games
+	LEFT JOIN teams AS home ON games.home_team_id = home.id
+	LEFT JOIN teams AS away ON games.away_team_id = away.id
+	ORDER BY games.tipoff ASC, games.id ASC;`
+	rows, err := db.QueryContext(ctx, sql)
 	if err != nil {
 		return nil, fmt.Errorf("get upcoming_games: %w", err)
 	}
 	defer rows.Close()
 
-	var games []UpcomingGame
+	var games []UpcomingGameDetails
 	for rows.Next() {
-		game := &UpcomingGame{}
+		game := &UpcomingGameDetails{}
 		err := rows.Scan(
 			&game.Id,
 			&game.Tipoff,
@@ -90,13 +124,21 @@ func GetUpcomingGames(db *sql.DB) ([]UpcomingGame, error) {
 			&game.Venue,
 			&game.Title,
 			&game.BroadcastChannel,
-			&game.HomeTeamId,
-			&game.AwayTeamId,
+			&game.HomeTeamName,
+			&game.HomeTeamAbbreviation,
+			&game.HomeTeamRank,
+			&game.AwayTeamName,
+			&game.AwayTeamAbbreviation,
+			&game.AwayTeamRank,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("reading upcoming_games: %w", err)
 		}
 		games = append(games, *game)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate upcoming_games: %w", err)
 	}
 
 	return games, nil

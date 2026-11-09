@@ -1,13 +1,17 @@
 package api
 
-import "net/http"
+import (
+	"database/sql"
+	"net/http"
+)
 
 const basePath = "/landolytics/api"
 
-func New() (http.Handler, error) {
+func New(database *sql.DB) (http.Handler, error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET "+basePath+"/health", health())
+	mux.HandleFunc("GET "+basePath+"/upcomingGames", GetUpcomingGames(database))
 
 	return mux, nil
 }

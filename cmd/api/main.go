@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/landopritcho/basketball-bot/internal/api"
+	"github.com/landopritcho/basketball-bot/internal/db"
 	"github.com/landopritcho/basketball-bot/internal/logging"
 )
 
@@ -33,7 +34,13 @@ func run() error {
 	)
 	defer stop()
 
-	handler, err := api.New()
+	database, err := db.New("./basketball.db")
+	if err != nil {
+		return err
+	}
+	defer database.Close()
+
+	handler, err := api.New(database.DB)
 	if err != nil {
 		return err
 	}
