@@ -20,6 +20,40 @@ type Team struct {
 	Rank           *int   // "1"
 }
 
+func GetTeams(ctx context.Context, db *sql.DB) ([]Team, error) {
+	rows, err := db.QueryContext(ctx, "SELECT * FROM teams ORDER BY id ASC;")
+	if err != nil {
+		return nil, fmt.Errorf("get teams: %w", err)
+	}
+	defer rows.Close()
+
+	var teams []Team
+	for rows.Next() {
+		team := &Team{}
+		err := rows.Scan(
+			&team.Id,
+			&team.Location,
+			&team.Name,
+			&team.Abbreviation,
+			&team.DisplayName,
+			&team.Slug,
+			&team.PrimaryColor,
+			&team.AlternateColor,
+			&team.Rank,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("reading teams: %w", err)
+		}
+		teams = append(teams, *team)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate teams: %w", err)
+	}
+
+	return teams, nil
+}
+
 func UpsertTeams(ctx context.Context, db *sql.DB, teams []Team) (int64, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
