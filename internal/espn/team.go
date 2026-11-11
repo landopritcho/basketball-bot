@@ -9,8 +9,13 @@ import (
 )
 
 const (
-	teamsUrl string = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams"
+	teamsUrl      string = "https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams"
+	nonD1TeamsUrl string = "https://sports.core.api.espn.com/v2/sports/basketball/leagues/mens-college-basketball/seasons"
 )
+
+func formatNonD1TeamUrl(season, teamId string) string {
+	return fmt.Sprintf("%s/%s/teams/%s", nonD1TeamsUrl, season, teamId)
+}
 
 type TeamsResponse struct {
 	Sports []Sport `json:"sports"`
@@ -67,4 +72,26 @@ func GetAllTeams(client http.ScrapingClient) ([]InternalTeam, error) {
 	}
 
 	return teamList, nil
+}
+
+func GetNonD1Team(client http.ScrapingClient, season, teamId string) (InternalTeam, error) {
+	useUserAgent := false
+	resp, err := client.Scrape(formatNonD1TeamUrl(season, teamId), &useUserAgent)
+	if err != nil {
+		return InternalTeam{}, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return InternalTeam{}, err
+	}
+
+	var team InternalTeam
+	err = json.Unmarshal(body, &team)
+	if err != nil {
+		return InternalTeam{}, err
+	}
+
+	return team, nil
 }
