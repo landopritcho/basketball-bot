@@ -22,11 +22,17 @@ type UpcomingGame struct {
 	Venue                  string  `json:"venue"`
 	EventTitle             *string `json:"event_title,omitempty"`
 	BroadcastChannel       string  `json:"broadcast_channel"`
+	HomeTeamSchoolName     *string `json:"home_team_school_name"`
 	HomeTeamName           *string `json:"home_team_name"`
 	HomeTeamAbbreviation   *string `json:"home_team_abbreviation"`
+	HomeTeamPrimaryColor   *string `json:"home_team_primary_color"`
+	HomeTeamAlternateColor *string `json:"home_team_alternate_color"`
 	HomeTeamRank           *int    `json:"home_team_rank"`
+	AwayTeamSchoolName     *string `json:"away_team_school_name"`
 	AwayTeamName           *string `json:"away_team_name"`
 	AwayTeamAbbreviation   *string `json:"away_team_abbreviation"`
+	AwayTeamPrimaryColor   *string `json:"away_team_primary_color"`
+	AwayTeamAlternateColor *string `json:"away_team_alternate_color"`
 	AwayTeamRank           *int    `json:"away_team_rank"`
 }
 
@@ -63,11 +69,17 @@ func GetUpcomingGames(database *sql.DB) http.HandlerFunc {
 				Venue:                  game.Venue,
 				EventTitle:             eventTitle,
 				BroadcastChannel:       game.BroadcastChannel,
+				HomeTeamSchoolName:     game.HomeTeamSchoolName,
 				HomeTeamName:           game.HomeTeamName,
 				HomeTeamAbbreviation:   game.HomeTeamAbbreviation,
+				HomeTeamPrimaryColor:   game.HomeTeamPrimaryColor,
+				HomeTeamAlternateColor: game.HomeTeamAlternateColor,
 				HomeTeamRank:           game.HomeTeamRank,
+				AwayTeamSchoolName:     game.AwayTeamSchoolName,
 				AwayTeamName:           game.AwayTeamName,
 				AwayTeamAbbreviation:   game.AwayTeamAbbreviation,
+				AwayTeamPrimaryColor:   game.AwayTeamPrimaryColor,
+				AwayTeamAlternateColor: game.AwayTeamAlternateColor,
 				AwayTeamRank:           game.AwayTeamRank,
 			})
 		}

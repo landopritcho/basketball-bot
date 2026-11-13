@@ -28,11 +28,17 @@ type UpcomingGameDetails struct {
 	Venue                  string
 	Title                  string
 	BroadcastChannel       string
-	HomeTeamName           *string
-	HomeTeamAbbreviation   *string
+	HomeTeamSchoolName     *string // "North Carolina"
+	HomeTeamName           *string // "Tar Heels"
+	HomeTeamAbbreviation   *string // "UNC"
+	HomeTeamPrimaryColor   *string
+	HomeTeamAlternateColor *string
 	HomeTeamRank           *int
+	AwayTeamSchoolName     *string
 	AwayTeamName           *string
 	AwayTeamAbbreviation   *string
+	AwayTeamPrimaryColor   *string
+	AwayTeamAlternateColor *string
 	AwayTeamRank           *int
 }
 
@@ -97,11 +103,17 @@ func GetUpcomingGames(ctx context.Context, db *sql.DB) ([]UpcomingGameDetails, e
 		games.venue,
 		games.title,
 		games.broadcast_channel,
-		home.display_name AS home_team_name,
+		home.location AS home_team_school_name,
+		home.name AS home_team_name,
 		home.abbreviation AS home_team_abbreviation,
+		home.primary_color AS home_team_primary_color,
+		home.alternate_color AS home_team_alternate_color,
 		home.rank AS home_team_rank,
-		away.display_name AS away_team_name,
+		away.location AS away_team_school_name,
+		away.name AS away_team_name,
 		away.abbreviation AS away_team_abbreviation,
+		away.primary_color as away_team_primary_color,
+		away.alternate_color AS away_team_alternate_color,
 		away.rank AS away_team_rank
 	FROM upcoming_games AS games
 	LEFT JOIN teams AS home ON games.home_team_id = home.id
@@ -124,11 +136,17 @@ func GetUpcomingGames(ctx context.Context, db *sql.DB) ([]UpcomingGameDetails, e
 			&game.Venue,
 			&game.Title,
 			&game.BroadcastChannel,
+			&game.HomeTeamSchoolName,
 			&game.HomeTeamName,
 			&game.HomeTeamAbbreviation,
+			&game.HomeTeamPrimaryColor,
+			&game.HomeTeamAlternateColor,
 			&game.HomeTeamRank,
+			&game.AwayTeamSchoolName,
 			&game.AwayTeamName,
 			&game.AwayTeamAbbreviation,
+			&game.AwayTeamPrimaryColor,
+			&game.AwayTeamAlternateColor,
 			&game.AwayTeamRank,
 		)
 		if err != nil {
