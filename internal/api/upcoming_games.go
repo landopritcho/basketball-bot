@@ -17,6 +17,7 @@ type UpcomingGamesResponse struct {
 
 type UpcomingGame struct {
 	Tipoff                 string  `json:"tipoff"`
+	TipoffTime             string  `json:"tipoff_time"`
 	LongDescription        string  `json:"long_description"`
 	AbbreviatedDescription string  `json:"abbreviated_description"`
 	Venue                  string  `json:"venue"`
@@ -57,6 +58,13 @@ func GetUpcomingGames(database *sql.DB) http.HandlerFunc {
 				return
 			}
 
+			tipoffTime, err := date.ConvertCentralDatetimeToTime(tipoff)
+			if err != nil {
+				slog.ErrorContext(r.Context(), "format upcoming game tipoff time", "game_id", game.Id, "error", err)
+				http.Error(w, "Unable to prepare upcoming games", http.StatusInternalServerError)
+				return
+			}
+
 			var eventTitle *string
 			if game.Title != "" {
 				eventTitle = &game.Title
@@ -64,6 +72,7 @@ func GetUpcomingGames(database *sql.DB) http.HandlerFunc {
 
 			response.Games = append(response.Games, UpcomingGame{
 				Tipoff:                 tipoff,
+				TipoffTime:             tipoffTime,
 				LongDescription:        game.LongDescription,
 				AbbreviatedDescription: game.AbbreviatedDescription,
 				Venue:                  game.Venue,

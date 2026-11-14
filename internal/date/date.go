@@ -51,3 +51,12 @@ func ConvertUnixToCentralDatetime(datetime int64) (string, error) {
 	parsedDatetime := time.Unix(datetime, 0)
 	return parsedDatetime.In(centralTimezone).Format("Jan 2, 2006 3:04 PM MST"), nil
 }
+
+func ConvertCentralDatetimeToTime(datetime string) (string, error) {
+	parsed, err := time.Parse("Jan 2, 2006 3:04 PM MST", datetime)
+	if err != nil {
+		return "", err
+	}
+
+	return parsed.Format("3:04 PM"), nil
+}
