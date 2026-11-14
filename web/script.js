@@ -49,20 +49,27 @@ try {
 
     for (const game of data.games) {
         const row = document.createElement("tr");
-        const values = [
-            matchup(
-                game.home_team_school_name,
-                game.home_team_primary_color,
-                game.home_team_rank,
-                game.away_team_school_name,
-                game.away_team_primary_color,
-                game.away_team_rank,
-            ),
-            game.tipoff_time,
+        const columns = [
+            {
+                value: matchup(
+                    game.home_team_school_name,
+                    game.home_team_primary_color,
+                    game.home_team_rank,
+                    game.away_team_school_name,
+                    game.away_team_primary_color,
+                    game.away_team_rank,
+                ),
+                className: "matchup",
+            },
+            {
+                value: game.tipoff_time,
+                className: "tipoff-time",
+            }
         ];
 
-        for (const value of values) {
+        for (const { value, className} of columns) {
             const cell = document.createElement("td");
+            cell.classList.add(className);
             cell.append(value || "-");
             row.append(cell);
         }
