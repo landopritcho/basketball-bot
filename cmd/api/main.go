@@ -14,6 +14,7 @@ import (
 	"github.com/landopritcho/basketball-bot/internal/api"
 	"github.com/landopritcho/basketball-bot/internal/db"
 	"github.com/landopritcho/basketball-bot/internal/logging"
+	"github.com/landopritcho/basketball-bot/web"
 )
 
 func main() {
@@ -40,13 +41,16 @@ func run() error {
 	}
 	defer database.Close()
 
-	handler, err := api.New(database.DB)
+	apiHandler, err := api.New(database.DB)
 	if err != nil {
 		return err
 	}
 
-	handler = logging.Middleware(slog.Default())(handler)
-	return serve(ctx, handler)
+	mux := http.NewServeMux()
+	mux.Handle("/landolytics/api/", logging.Middleware(slog.Default())(apiHandler))
+	mux.Handle("/", http.FileServerFS(web.Assets))
+
+	return serve(ctx, mux)
 }
 
 func serve(ctx context.Context, handler http.Handler) error {
