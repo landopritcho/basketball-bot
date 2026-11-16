@@ -6,3 +6,6 @@
 
 # Databases
 *.db
+
+# Data
+*.json
