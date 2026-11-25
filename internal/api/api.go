@@ -12,6 +12,7 @@ func New(database *sql.DB) (http.Handler, error) {
 
 	mux.HandleFunc("GET "+basePath+"/health", health())
 	mux.HandleFunc("GET "+basePath+"/upcomingGames", GetUpcomingGames(database))
+	mux.HandleFunc("GET "+basePath+"/liveGames", GetLiveGames(database))
 
 	return mux, nil
 }
