@@ -119,4 +119,38 @@ func main() {
 		fmt.Printf("error: %w", err)
 	}
 	fmt.Printf("upserted %d non D1-teams\n", count)
+
+	liveGames, err := espn.GetCurrentLiveGames(client)
+	if err != nil {
+		log.Panic()
+	}
+
+	var formattedLiveGames []db.LiveGame
+	for _, game := range liveGames {
+		homeTeamId, _ := strconv.Atoi(game.HomeTeam.Details.Id)
+		awayTeamId, _ := strconv.Atoi(game.AwayTeam.Details.Id)
+		homeTeamScore, _ := strconv.Atoi(game.HomeTeam.GameScore)
+		awayTeamScore, _ := strconv.Atoi(game.AwayTeam.GameScore)
+		half := strconv.Itoa(game.Status.Period)
+		formattedLiveGames = append(formattedLiveGames, db.LiveGame{
+			Id:                game.Id,
+			Venue:             game.Venue,
+			Title:             game.Title,
+			BroadcastChannel:  game.BroadcastChannel,
+			HomeTeamId:        homeTeamId,
+			AwayTeamId:        awayTeamId,
+			HomeTeamScore:     homeTeamScore,
+			AwayTeamScore:     awayTeamScore,
+			DisplayClock:      game.Status.DisplayClock,
+			Half:              half,
+			StatusDescription: game.Status.Details.Description,
+			StatusDetail:      game.Status.Details.Detail,
+			StatusShortDetail: game.Status.Details.ShortDetail,
+		})
+	}
+	count, err = db.UpdateLiveGames(ctx, database.DB, formattedLiveGames)
+	if err != nil {
+		fmt.Printf("error: %w", err)
+	}
+	fmt.Printf("updated %d live games\n", count)
 }

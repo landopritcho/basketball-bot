@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Live games | Landolytics CBB</title>
+    <link rel="stylesheet" href="/style.css">
+    <script type="module" src="/live.js"></script>
+  </head>
+  <body>
+    <main>
+      <h1 id="page-title">Live games</h1>
+      <p id="status" role="status">Loading live games...</p>
+
+      <div class="table-scroll">
+        <table class="live-games" aria-labelledby="page-title" hidden>
+          <tbody id="games"></tbody>
+        </table>
+      </div>
+
+      <noscript>Enable JavaScript to load live games.</noscript>
+    </main>
+  </body>
+</html>

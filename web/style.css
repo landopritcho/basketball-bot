@@ -30,3 +30,15 @@ tbody tr:nth-child(odd) {
 .tipoff-time {
   text-align: right;
 }
+
+.live-games .away-team {
+  text-align: right;
+}
+
+.live-games .live-score {
+  text-align: center;
+}
+
+.live-games .home-team {
+  text-align: left;
+}

@@ -180,3 +180,53 @@ func GetUpcomingDaySchedule(client http.ScrapingClient) ([]ScheduledGame, error)
 	}
 	return scheduledGames, nil
 }
+
+type LiveGame struct {
+	Id               string
+	Venue            string
+	Title            string
+	BroadcastChannel string
+	HomeTeam         Team
+	AwayTeam         Team
+	Status           Status
+}
+
+func GetCurrentLiveGames(client http.ScrapingClient) ([]LiveGame, error) {
+	currentDayCondensedDate := date.GetCurrentCondensedDate()
+	currentDayGames, err := GetAllGamesForDate(client, currentDayCondensedDate)
+	if err != nil {
+		return nil, err
+	}
+
+	var liveGames []LiveGame
+	for _, game := range currentDayGames {
+		gameDetails := game.Details[0]
+
+		var homeTeam, awayTeam Team
+		if gameDetails.Teams[0].IsHomeTeam() {
+			homeTeam = gameDetails.Teams[0]
+			awayTeam = gameDetails.Teams[1]
+		} else {
+			homeTeam = gameDetails.Teams[1]
+			awayTeam = gameDetails.Teams[0]
+		}
+
+		title := ""
+		if len(gameDetails.Note) == 0 {
+			title = ""
+		} else {
+			title = gameDetails.Note[0].Headline
+		}
+
+		liveGames = append(liveGames, LiveGame{
+			Id:               game.Id,
+			Venue:            gameDetails.Venue.Name,
+			Title:            title,
+			BroadcastChannel: gameDetails.BroadcastChannel,
+			HomeTeam:         homeTeam,
+			AwayTeam:         awayTeam,
+			Status:           gameDetails.Status,
+		})
+	}
+	return liveGames, nil
+}
